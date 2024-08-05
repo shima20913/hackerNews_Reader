@@ -37,7 +37,7 @@ func main() {
 	}
 
 	storyIDs := storyID[0]
-	storyURL := fmt.Sprintf("https://hacker-news.firebaseio.com/v0/item/%d.json", storyID)
+	storyURL := fmt.Sprintf("https://hacker-news.firebaseio.com/v0/item/%d.json", storyIDs)
 	storyResponse, err := http.Get(storyURL)
 	if err != nil {
 		log.Fatalf("Failed to fetch story: %v", err)
@@ -54,7 +54,7 @@ func main() {
 		log.Fatalf("Failed to translate title: %v", err)
 	}
 
-	message := fmt.Sprintf("**%s**\n%s", translatedTitle, story.URL)
+	message := fmt.Sprintf("**%s**\n%s", translateTitle, story.URL)
 	if err := sendToDiscord(message); err != nil {
 		log.Fatalf("Failed to post message to Discord: %v", err)
 	}
@@ -90,8 +90,8 @@ func translateText(text string) (string, err) {
 		return "", err
 	}
 
-	translatedText := result["data"].(map[string]interface{})["translations"].([]interface{})[0].(map[string]interface{})["translatedText"].(string)
-	return translatedText, nil
+	translateText := result["data"].(map[string]interface{})["translations"].([]interface{})[0].(map[string]interface{})["translatedText"].(string)
+	return translateText, nil
 }
 
 func sendToDiscord(message string) error {

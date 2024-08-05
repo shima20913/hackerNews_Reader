@@ -79,8 +79,13 @@ func translateText(text string) (string, err) {
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body) /
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		return "", err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(respBody, &result); err != nil {
 		return "", err
 	}
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -30,5 +31,13 @@ func main() {
 	if err := json.NewDecoder(response.Body).Decode(&storyID); err != nil {
 		log.Fatalf("failed to decode response: %v", err)
 	}
+
+	storyID := storyIDs[0]
+	storyURL := fmt.Sprintf("https://hacker-news.firebaseio.com/v0/item/%d.json", storyID)
+	storyResponse, err := http.Get(storyURL)
+	if err != nil {
+		log.Fatalf("Failed to fetch story: %v", err)
+	}
+	defer storyResponse.Body.Close()
 
 }

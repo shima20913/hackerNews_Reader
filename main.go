@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -61,5 +62,13 @@ func main() {
 func translateText(text string) (string, err) {
 	apiKey := os.Getenv("GOOGLE_TRANSLATE_API")
 	url := "https://translation.googleapis.com/language/translate/v2"
+
+	body := fmt.Sprintf(`{"q": "%s", "target": "ja"}`, text)
+	req, err := http.NewRequest("POST", url, strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 
 }

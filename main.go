@@ -45,4 +45,9 @@ func main() {
 		log.Fatalf("failed to decode story: %v", err)
 	}
 
+	translateTitle, err := translateText(story.Title)
+	if err != nil {
+		log.Fatalf("Failed to translate title: %v", err)
+	}
+
 }

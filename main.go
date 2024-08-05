@@ -89,4 +89,6 @@ func translateText(text string) (string, err) {
 		return "", err
 	}
 
+	translatedText := result["data"].(map[string]interface{})["translations"].([]interface{})[0].(map[string]interface{})["translatedText"].(string)
+	return translatedText, nil
 }

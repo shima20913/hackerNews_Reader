@@ -108,4 +108,9 @@ func sendToDiscord(message string) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP status: %s", resp.Status)
+	}
+	return nil
+
 }

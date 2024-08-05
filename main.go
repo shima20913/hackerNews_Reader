@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -24,5 +25,10 @@ func main() {
 		log.Fatalf("failed to get hackerNews stories:%v", err)
 	}
 	defer response.Body.Close()
+
+	var storyID []int
+	if err := json.NewDecoder(response.Body).Decode(&storyID); err != nil {
+		log.Fatalf("failed to decode response: %v", err)
+	}
 
 }

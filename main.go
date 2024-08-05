@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -25,6 +26,16 @@ func main() {
 		log.Fatalf("error load .env file") //.envの読み込み
 	}
 
+	for {
+		if err := checkNewStory(); err != nil {
+			log.Printf("error: %v", err)
+		}
+		time.Sleep(15 * time.Minute)
+	}
+
+}
+
+func checkNewStory() error {
 	hackerNewsAPI := "https://hacker-news.firebaseio.com/v0/topstories.json"
 	response, err := http.Get(hackerNewsAPI)
 	if err != nil {
@@ -65,6 +76,7 @@ func main() {
 	if err := sendToDiscord(message); err != nil {
 		log.Fatalf("Failed to post message to Discord: %v", err) //discordに送信するメッセージ
 	}
+	return nil
 
 }
 

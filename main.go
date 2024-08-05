@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/joho/godotenv"
 )
@@ -54,5 +55,11 @@ func main() {
 	if err := sendToDiscord(message); err != nil {
 		log.Fatalf("Failed to post message to Discord: %v", err)
 	}
+
+}
+
+func translateText(text string) (string, err) {
+	apiKey := os.Getenv("GOOGLE_TRANSLATE_API")
+	url := "https://translation.googleapis.com/language/translate/v2"
 
 }

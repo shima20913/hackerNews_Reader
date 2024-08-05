@@ -40,4 +40,9 @@ func main() {
 	}
 	defer storyResponse.Body.Close()
 
+	var story HackerNewsData
+	if err := json.NewDecoder(storyResponse.Body).Decode(&story); err != nil {
+		log.Fatalf("failed to decode story: %v", err)
+	}
+
 }

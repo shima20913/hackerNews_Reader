@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -91,4 +92,20 @@ func translateText(text string) (string, err) {
 
 	translatedText := result["data"].(map[string]interface{})["translations"].([]interface{})[0].(map[string]interface{})["translatedText"].(string)
 	return translatedText, nil
+}
+
+func sendToDiscord(message string) error {
+	webhookURL := os.Getenv("DISCORD_WEBHOOK_URL")
+	dataToSend := map[string]string{"content": message}
+	jsonData, err := json.Marshal(dataToSend)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(webhookURL, "application/json", bytes.NewBuffer(jsonData)) // DiscordにPOSTリクエストを送信
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
 }

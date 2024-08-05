@@ -184,8 +184,7 @@ func translateText(text string) (string, error) {
 		return "", fmt.Errorf("can not set GOOGLE_TRANSLATE_API")
 	}
 	url := fmt.Sprintf("https://translation.googleapis.com/language/translate/v2?key=%s", apiKey)
-
-	body := fmt.Sprintf(`{"q": "%s", "source": "en", "target": "ja", "format": "text"}`, text)
+	body := fmt.Sprintf(`{"q": "%s", "source": "en", "target": "ja", "format": "text"}`, escapeJSON(text))
 	req, err := http.NewRequest("POST", url, strings.NewReader(body))
 	if err != nil {
 		return "", err
@@ -238,6 +237,10 @@ func translateText(text string) (string, error) {
 		return "", fmt.Errorf("translatedText not found or is not a string")
 	}
 	return translateText, nil
+}
+
+func escapeJSON(text string) string {
+	return strings.ReplaceAll(text, `"`, `\"`)
 }
 
 // Discordにメッセージを送信

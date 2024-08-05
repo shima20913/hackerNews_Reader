@@ -61,7 +61,7 @@ func main() {
 
 }
 
-func translateText(text string) (string, err) {
+func translateText(text string) (string, error) {
 	apiKey := os.Getenv("GOOGLE_TRANSLATE_API")
 	url := "https://translation.googleapis.com/language/translate/v2"
 

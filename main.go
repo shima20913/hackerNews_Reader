@@ -14,6 +14,35 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const sentStoriesFile = "sent_stories.json"
+
+func loadSentStories() (map[int]bool, error) {
+	file, err := os.Open(sentStoriesFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return make(map[int]bool), nil // ファイルが存在しない場合新規作成
+		}
+		return nil, err
+	}
+	defer file.Close()
+
+	var sentStories map[int]bool
+	if err := json.NewDecoder(file).Decode(&sentStories); err != nil {
+		return nil, err
+	}
+	return sentStories, nil
+}
+
+func saveSentStories(sentStories map[int]bool) error {
+	file, err := os.Create(sentStoriesFile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return json.NewEncoder(file).Encode(sentStories)
+}
+
 type HackerNewsData struct {
 	Title string `json:"title"`
 	URL   string `json:"url"`
@@ -68,7 +97,7 @@ func checkNewStory() error {
 
 	translatedContent, err := translateText(story.Text)
 	if err != nil {
-		log.Fatalf("failed to translate content: %v", err)
+		log.Fatalf("failed to translate content: %v", err) //記事内容の翻訳
 	}
 
 	message := fmt.Sprintf("**%s**\n%s\n\n%s", translateTitle, story.URL, translatedContent)

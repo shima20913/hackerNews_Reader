@@ -32,7 +32,7 @@ func main() {
 		log.Fatalf("failed to decode response: %v", err)
 	}
 
-	storyID := storyIDs[0]
+	storyIDs := storyID[0]
 	storyURL := fmt.Sprintf("https://hacker-news.firebaseio.com/v0/item/%d.json", storyID)
 	storyResponse, err := http.Get(storyURL)
 	if err != nil {

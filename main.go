@@ -50,4 +50,9 @@ func main() {
 		log.Fatalf("Failed to translate title: %v", err)
 	}
 
+	message := fmt.Sprintf("**%s**\n%s", translatedTitle, story.URL)
+	if err := sendToDiscord(message); err != nil {
+		log.Fatalf("Failed to post message to Discord: %v", err)
+	}
+
 }

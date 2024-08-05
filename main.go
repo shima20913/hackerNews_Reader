@@ -14,7 +14,37 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const sentStoriesFile = "sent_stories.json"
+const (
+	sentStoriesFile  = "sent_stories.json"
+	lastSentTimeFile = "last_sent_time.json"
+	checkInterval    = 15 * time.Minute // ストーリーのチェック間隔
+	timeToPost       = 30 * time.Minute // 投稿頻度
+)
+
+type HackerNewsData struct {
+	Title string `json:"title"`
+	URL   string `json:"url"`
+	Text  string `json:"text"` //hackerNewsストーリーを格納
+}
+
+type LastSentTime struct {
+	LastSent time.Time `json:"last_sent"`
+}
+
+func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("error load .env file") //.envの読み込み
+	}
+
+	for {
+		if err := checkNewStory(); err != nil {
+			log.Printf("error: %v", err)
+		}
+		time.Sleep(checkInterval)
+	}
+
+}
 
 func loadSentStories() (map[int]bool, error) {
 	file, err := os.Open(sentStoriesFile)
@@ -43,28 +73,45 @@ func saveSentStories(sentStories map[int]bool) error {
 	return json.NewEncoder(file).Encode(sentStories)
 }
 
-type HackerNewsData struct {
-	Title string `json:"title"`
-	URL   string `json:"url"`
-	Text  string `json:"text"` //hackerNewsストーリーを格納
+func checkLastSentTime() (*LastSentTime, error) {
+	file, err := os.Open(lastSentTimeFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &LastSentTime{LastSent: time.Now().Add(-timeToPost)}, nil
+		}
+		return nil, err
+	}
+	defer file.Close()
+
+	var lastSentTime LastSentTime
+	if err := json.NewDecoder(file).Decode(&lastSentTime); err != nil {
+		return nil, err
+	}
+	return &lastSentTime, nil
+
 }
 
-func main() {
-	err := godotenv.Load()
+func saveLastSentTime(lastSentTime *LastSentTime) error {
+	file, err := os.Create(lastSentTimeFile)
 	if err != nil {
-		log.Fatalf("error load .env file") //.envの読み込み
+		return err
 	}
+	defer file.Close()
 
-	for {
-		if err := checkNewStory(); err != nil {
-			log.Printf("error: %v", err)
-		}
-		time.Sleep(15 * time.Minute)
-	}
-
+	return json.NewEncoder(file).Encode(lastSentTime)
 }
 
 func checkNewStory() error {
+	lastSentTime, err := checkLastSentTime()
+	if err != nil {
+		return fmt.Errorf("failed to load last sent time: %v", err)
+	}
+
+	if time.Since(lastSentTime.LastSent) < timeToPost {
+
+		return nil
+	}
+
 	hackerNewsAPI := "https://hacker-news.firebaseio.com/v0/topstories.json"
 	response, err := http.Get(hackerNewsAPI)
 	if err != nil {
@@ -77,33 +124,54 @@ func checkNewStory() error {
 		log.Fatalf("failed to decode response: %v", err) //ストーリーIDのリストをデコード
 	}
 
-	storyIDs := storyID[0]
-	storyURL := fmt.Sprintf("https://hacker-news.firebaseio.com/v0/item/%d.json", storyIDs)
-	storyResponse, err := http.Get(storyURL)
+	sentStories, err := loadSentStories()
 	if err != nil {
-		log.Fatalf("Failed to fetch story: %v", err)
-	}
-	defer storyResponse.Body.Close() //ストーリーの詳細を取得
-
-	var story HackerNewsData
-	if err := json.NewDecoder(storyResponse.Body).Decode(&story); err != nil {
-		log.Fatalf("failed to decode story: %v", err)
+		return fmt.Errorf("failed to load sent stories: %v", err)
 	}
 
-	translateTitle, err := translateText(story.Title)
-	if err != nil {
-		log.Fatalf("Failed to translate title: %v", err) //記事タイトルの翻訳
-	}
+	//送信済み記事を除外
+	for _, id := range storyID {
+		if _, exists := sentStories[id]; exists {
+			continue
+		}
 
-	translatedContent, err := translateText(story.Text)
-	if err != nil {
-		log.Fatalf("failed to translate content: %v", err) //記事内容の翻訳
-	}
+		storyURL := fmt.Sprintf("https://hacker-news.firebaseio.com/v0/item/%d.json", id)
+		storyResponse, err := http.Get(storyURL)
+		if err != nil {
+			log.Fatalf("Failed to fetch story: %v", err)
+		}
+		defer storyResponse.Body.Close() //ストーリーの詳細を取得
 
-	message := fmt.Sprintf("**%s**\n%s\n\n%s", translateTitle, story.URL, translatedContent)
+		var story HackerNewsData
+		if err := json.NewDecoder(storyResponse.Body).Decode(&story); err != nil {
+			log.Fatalf("failed to decode story: %v", err)
+		}
 
-	if err := sendToDiscord(message); err != nil {
-		log.Fatalf("Failed to post message to Discord: %v", err) //discordに送信するメッセージ
+		translateTitle, err := translateText(story.Title)
+		if err != nil {
+			log.Fatalf("Failed to translate title: %v", err) //記事タイトルの翻訳
+		}
+
+		translatedContent, err := translateText(story.Text)
+		if err != nil {
+			log.Fatalf("failed to translate content: %v", err) //記事内容の翻訳
+		}
+
+		message := fmt.Sprintf("**%s**\n%s\n\n%s", translateTitle, story.URL, translatedContent)
+
+		if err := sendToDiscord(message); err != nil {
+			log.Fatalf("Failed to post message to Discord: %v", err) //discordに送信するメッセージ
+		}
+
+		sentStories[id] = true
+		if err := saveSentStories(sentStories); err != nil {
+			return fmt.Errorf("failed to save sent stories: %v", err) //送信済みストーリーIDをファイルに格納
+		}
+
+		lastSentTime.LastSent = time.Now()
+		if err := saveLastSentTime(lastSentTime); err != nil {
+			return fmt.Errorf("failed to save last sent time: %v", err)
+		}
 	}
 	return nil
 
